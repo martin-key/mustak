@@ -1,0 +1,65 @@
+# Docker образ в GitHub Container Registry (ghcr.io) при всеки commit в main.
+# Първо минават същите проверки като за pull request (ci.yml). Образът се публикува само ако са зелени.
+#
+#   ghcr.io/<собственик>/<repo>:latest       последният commit в main
+#   ghcr.io/<собственик>/<repo>:sha-<commit> конкретен commit (за връщане към стара версия)
+name: Docker образ
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Публикуванията вървят едно след друго, за да остане latest на последния commit.
+  group: docker-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Тестове
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    name: Build и публикуване в GHCR
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      # GITHUB_TOKEN може да пише в пакетите на това repo. Не трябват други тайни.
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Таговете и OCI етикетите. org.opencontainers.image.source свързва пакета с repo-то.
+      - id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Слоевете се пазят в кеша на GitHub Actions: следващият build преизползва зависимостите.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
