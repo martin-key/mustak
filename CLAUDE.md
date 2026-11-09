@@ -2,27 +2,54 @@
 
 @AGENTS.md
 
-Уеб приложение за измислената бръснарница „Мустак“: публичен сайт с онлайн записване на час, админ панел за собственика и защитено API за AI агент (n8n). Всичко работи на собствен сървър.
+Уеб приложение за измислената бръснарница „Мустак“: публичен сайт с онлайн записване на час, админ панел за собственика и защитено API за AI агент (n8n). Всичко работи на собствен сървър (Docker: Next.js + PostgreSQL). Как се пуска и как работи API-то: [README.md](README.md).
 
 ## Стек
 
-- Next.js 16 (App Router, TypeScript, Tailwind v4), `output: "standalone"`, Cache Components включени
+- Next.js 16 (App Router, TypeScript, Tailwind v4), `output: "standalone"`, **Cache Components включени** (виж „Next.js 16“ по-долу)
 - PostgreSQL 18, Drizzle ORM + drizzle-kit, драйвер `pg`
-- Zod 4 за валидация, `@node-rs/argon2` за пароли, `@date-fns/tz` за часовата зона
+- Zod 4 за валидация, `@node-rs/argon2` за пароли, `@date-fns/tz` за часовата зона, `libphonenumber-js` за телефони
 - Vitest; интеграционните тестове вдигат Postgres с Testcontainers
-- Docker (multi-stage, non-root) + docker compose
+- Docker (multi-stage, non-root, read-only) + docker compose
 
 ## Правила
 
-- **Текстовете в интерфейса са на български.** Кодът, имената на променливи и коментарите в кода може да са на английски или български, но съобщенията към потребителя са само на български.
-- **Без секрети в кода.** Всичко тайно идва от променливи на средата; новите променливи се добавят и в `.env.example`.
-- **Без външни услуги.** Без SaaS за данни, вход, анализи, карти или шрифтове по време на работа. Нищо не се зарежда от чужди домейни (CSP го спира).
-- **Всяка промяна на базата е миграция.** Сменяте `src/server/db/schema.ts`, после `npm run db:generate`. SQL, който Drizzle не описва (напр. EXCLUDE ограничения), е в ръчна миграция (`npx drizzle-kit generate --custom --name=...`). Никога не се пипа база на ръка.
-- **Бизнес логиката е на едно място:** `src/server/booking/`. Server Actions, админ панелът и API-то само валидират входа и викат тези функции.
-- **Времето:** в базата всичко е `timestamptz` (UTC). Всички изчисления и показване стават в `Europe/Sofia` чрез `src/lib/time.ts`. Не се ползва локалната зона на машината.
-- **Двойното записване се пази от базата** (ограничение `appointments_no_overlap`). Не го махайте и не го заобикаляйте.
-- **Сигурност:** всяка админ Server Action и всеки админ запит започва с `requireAdmin()`. API route handler-ите минават през проверка на ключа и rate limit.
-- Бизнес настройките (име, адрес, правила за записване) са в `src/config/business.ts`.
+- **Текстовете в интерфейса са на български.** Грешките от валидацията и API-то също. Кодът и имената са на английски; коментарите може да са на български.
+- **Без секрети в кода.** Всичко тайно идва от променливи на средата; новите променливи се добавят и в `.env.example`, `docker-compose.yml` и README.
+- **Без външни услуги.** Без SaaS за данни, вход, анализи, карти или шрифтове по време на работа. CSP в `next.config.ts` позволява само собствения домейн; не го разхлабвайте. Снимките на бръснарите са само локални файлове от `public/`.
+- **Всяка промяна на базата е миграция.** Сменяте `src/server/db/schema.ts`, после `npm run db:generate` и commit-вате SQL файла от `drizzle/`. SQL, който Drizzle не описва (EXCLUDE ограничения и т.н.), е в ръчна миграция: `npx drizzle-kit generate --custom --name=...`. Никога не се пипа база на ръка и не се редактира приложена миграция.
+- **Двойното записване се пази от базата** (ограничение `appointments_no_overlap` в `drizzle/0001_appointments_no_overlap.sql`). Не го махайте и не го заобикаляйте. Списъкът с активни статуси там трябва да съвпада с `activeAppointmentStatuses` в схемата.
+- **Бизнес логиката е на едно място:** `src/server/booking/` (`service.ts` записва, отказва и сменя статуси; `availability.ts` е чистата функция за слотовете). Server Actions, админ панелът и API-то само валидират входа и викат тези функции. Не дублирайте логика в route handler-и или компоненти.
+- **Времето:** в базата всичко е `timestamptz` (UTC). Всички изчисления и показване стават в `Europe/Sofia` чрез `src/lib/time.ts`. Не ползвайте `Date#getHours()`, `toLocaleString()` без зона и т.н.: тестовете вървят в `America/New_York`, за да хванат такива грешки.
+- **Сигурност:** всяка админ страница, заявка и Server Action започва с `requireAdmin()` (proxy.ts проверява само дали има бисквитка). API route handler-ите започват с `authorizeAgent()`. Публичните действия минават през `rateLimit()`.
+- Бизнес настройките (име, адрес, работно време на сайта, правила за записване) са в `src/config/business.ts`. Няма секрети там: файлът стига и до браузъра.
+
+## Next.js 16 с Cache Components
+
+- Данни от базата никога не се четат при build. Функциите, които четат за страници, викат `await connection()` (или `cookies()` чрез `requireAdmin()`), а GET route handler-ите викат `connection()` или `authorizeAgent()` първо. `new Date()` в сървърен код за страници е само след `connection()`.
+- Всичко, което чете заявката (searchParams, params, бисквитки, база), е в компонент вътре в `<Suspense>`. Статичната част на страницата е извън него.
+- `usePathname()`/`useSearchParams()` в клиентски компоненти също са в `<Suspense>`.
+- След промяна в Server Action: `refresh()` от `next/cache` (страниците не се кешират).
+- Документацията за тази версия е в `node_modules/next/dist/docs/`.
+
+## Структура
+
+```
+src/config/business.ts      бизнес настройки
+src/app/(site)/             публичен сайт (/, /zapazi-chas, /chas/[token])
+src/app/admin/              вход и админ панел (+ actions.ts, manage-actions.ts)
+src/app/api/v1/             API за AI агента; src/app/api/public/ за формата
+src/server/booking/         бизнес логика: availability, service, schedule, manage, catalog
+src/server/db/              схема, връзка, миграции, seed
+src/server/auth/            пароли (argon2id) и сесии
+src/server/api/agent.ts     проверка на API ключа и формат на отговорите
+src/server/rate-limit.ts    лимити (брояч в Postgres)
+src/lib/                    time.ts, validation.ts, format.ts, labels.ts
+src/components/             site/, booking/, admin/, ui/
+drizzle/                    SQL миграции
+scripts/                    migrate, seed, admin-password (bundle-ват се за Docker)
+tests/unit, tests/integration
+```
 
 ## Команди
 
@@ -32,6 +59,8 @@ npm run db:migrate   # прилага миграциите
 npm run db:seed      # администратор + примерни данни
 npm run dev          # http://localhost:3000
 npm test             # unit + интеграционни тестове (нужен е Docker)
-npm run build
+npm run lint && npm run typecheck && npm run build
 docker compose up --build   # целият стек
 ```
+
+Преди commit: `npm run lint`, `npm run typecheck`, `npm test`. При промени по страниците и `npm run build` (хваща грешки в Cache Components, които dev не хваща).
