@@ -79,6 +79,10 @@
     );
     background-size: 220% 100%;
     background-position: 0% 50%;
+    /* Градиентът се рисува само в кутията на елемента: без това опашките на „у“, „р“, „ф“
+       излизат под кутията при плътна междуредова разредка и стават невидими. */
+    padding-block: 0.06em 0.22em;
+    margin-block: -0.06em -0.22em;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
