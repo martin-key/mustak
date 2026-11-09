@@ -36,7 +36,7 @@ interface Clock {
   policy?: BookingPolicy;
 }
 
-const ACTIVE = [...activeAppointmentStatuses];
+const ACTIVE: AppointmentStatus[] = [...activeAppointmentStatuses];
 const CUSTOMER_CANCELLABLE: AppointmentStatus[] = ["booked", "confirmed"];
 
 // ---------------------------------------------------------------------------
@@ -109,6 +109,20 @@ async function loadBarberDays(db: DbLike, barberIds: string[], date: LocalDate):
       appointmentCount: own.length,
     };
   });
+}
+
+/**
+ * Заключва графика на бръснаря до края на текущата транзакция (или savepoint).
+ *
+ * Без това две едновременни INSERT-а за един бръснар и едно време стигат до deadlock (40P01), а не до 23P01:
+ * EXCLUDE ограничението първо добавя записа в индекса и после търси конфликти, така че всяка транзакция
+ * вижда незавършения запис на другата и я чака. PostgreSQL прекъсва едната след deadlock_timeout (1 s).
+ * С ключалката записите за един бръснар минават един след друг и губещият получава 23P01 веднага.
+ * Защитата от двойно записване остава в ограничението на базата; ключалката само подрежда опашката.
+ * FOR NO KEY UPDATE не спира проверката на foreign key при INSERT в appointments (тя е FOR KEY SHARE).
+ */
+async function lockBarberSchedule(tx: DbLike, barberId: string): Promise<void> {
+  await tx.select({ id: barbers.id }).from(barbers).where(eq(barbers.id, barberId)).for("no key update");
 }
 
 // ---------------------------------------------------------------------------
@@ -242,8 +256,9 @@ export async function createBooking(db: DbLike, input: CreateBookingInput, clock
     const cancelToken = generateToken();
     try {
       // Отделна транзакция (или savepoint, ако вече сме в транзакция), за да може да опитаме следващия бръснар.
-      const [appointment] = await db.transaction((tx) =>
-        tx
+      const [appointment] = await db.transaction(async (tx) => {
+        await lockBarberSchedule(tx, day.barberId);
+        return tx
           .insert(appointments)
           .values({
             barberId: day.barberId,
@@ -262,8 +277,8 @@ export async function createBooking(db: DbLike, input: CreateBookingInput, clock
             cancelTokenHash: sha256(cancelToken),
             idempotencyKey: input.idempotencyKey ?? null,
           })
-          .returning(),
-      );
+          .returning();
+      });
       return { appointment, cancelToken, replayed: false };
     } catch (error) {
       // Друг клиент е записал същото време в същия момент: базата е отказала. Пробваме следващия бръснар.
@@ -387,7 +402,7 @@ export async function setAppointmentStatus(
 ): Promise<void> {
   const now = clock.now ?? new Date();
   const [current] = await db
-    .select({ status: appointments.status, cancelledAt: appointments.cancelledAt, cancelledBy: appointments.cancelledBy })
+    .select({ status: appointments.status, barberId: appointments.barberId })
     .from(appointments)
     .where(eq(appointments.id, id));
   if (!current) throw new BookingError("NOT_FOUND");
@@ -395,16 +410,18 @@ export async function setAppointmentStatus(
 
   const cancelling = status === "cancelled";
   try {
-    await db.transaction((tx) =>
-      tx
+    await db.transaction(async (tx) => {
+      // Активиране на час може да се засече с ново записване за същия бръснар (виж lockBarberSchedule).
+      if (ACTIVE.includes(status)) await lockBarberSchedule(tx, current.barberId);
+      await tx
         .update(appointments)
         .set({
           status,
           cancelledAt: cancelling ? now : null,
           cancelledBy: cancelling ? "admin" : null,
         })
-        .where(eq(appointments.id, id)),
-    );
+        .where(eq(appointments.id, id));
+    });
   } catch (error) {
     if (isOverlapViolation(error)) {
       throw new BookingError(
