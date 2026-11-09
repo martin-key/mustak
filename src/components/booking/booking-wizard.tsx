@@ -7,6 +7,8 @@ import { BarberPortrait } from "@/components/site/barber-portrait";
 import { buttonClass } from "@/components/ui/button";
 import { inputClass } from "@/components/ui/input";
 import { formatDuration, formatPrice } from "@/lib/format";
+import { TURNSTILE_ACTION } from "@/lib/turnstile";
+import { TurnstileWidget } from "./turnstile-widget";
 import {
   addDays,
   daysBetween,
@@ -50,6 +52,8 @@ interface Props {
   maxDaysAhead: number;
   salonPhone: string;
   salonPhoneHref: string;
+  /** Публичен ключ на Cloudflare Turnstile или null, ако защитата е изключена. */
+  turnstileSiteKey: string | null;
 }
 
 const WEEKDAY_HEADERS = ["пн", "вт", "ср", "чт", "пт", "сб", "нд"];
@@ -73,6 +77,10 @@ export function BookingWizard(props: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [slotsCache, setSlotsCache] = useState<Record<string, SlotsState>>({});
   const [submitting, startSubmit] = useTransition();
+  // Проверка „Не съм робот“: токенът е за един опит, затова при грешка widget-ът се пресъздава (нов key).
+  const [humanToken, setHumanToken] = useState("");
+  const [humanAttempt, setHumanAttempt] = useState(0);
+  const needsHumanCheck = !!props.turnstileSiteKey;
 
   const [step, setStep] = useState<StepKey>(() => (!serviceId ? "usluga" : !barberId ? "brasnar" : "den"));
   const stepIndex = STEPS.findIndex((s) => s.key === step);
@@ -236,12 +244,16 @@ export function BookingWizard(props: Props) {
         customer: { name: customer.name, phone: customer.phone, email: customer.email },
         note: customer.note,
         website,
+        turnstileToken: humanToken,
       });
       if (result.ok) {
         setSlot(null);
         router.push(`/chas/${result.token}?nov=1`);
         return;
       }
+      // Токенът вече е използван: нов widget за следващия опит.
+      setHumanToken("");
+      setHumanAttempt((n) => n + 1);
       if (result.code === "SLOT_UNAVAILABLE") {
         refreshSlots();
         setSlot(null);
@@ -514,14 +526,28 @@ export function BookingWizard(props: Props) {
           <p className="mt-6 text-sm text-cream-muted">
             Плащаш в салона. След потвърждението ще получиш линк, през който можеш да откажеш часа.
           </p>
+          {needsHumanCheck && (
+            <div className="mt-6">
+              <TurnstileWidget
+                key={humanAttempt}
+                siteKey={props.turnstileSiteKey!}
+                action={TURNSTILE_ACTION}
+                onToken={setHumanToken}
+              />
+            </div>
+          )}
           <StickyBar>
             <button
               type="button"
               onClick={confirm}
-              disabled={submitting}
+              disabled={submitting || (needsHumanCheck && !humanToken)}
               className={buttonClass({ size: "lg", className: "w-full" })}
             >
-              {submitting ? "Записваме…" : "Потвърди записването"}
+              {submitting
+                ? "Записваме…"
+                : needsHumanCheck && !humanToken
+                  ? "Проверяваме, че не си робот…"
+                  : "Потвърди записването"}
             </button>
           </StickyBar>
         </div>

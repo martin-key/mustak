@@ -39,6 +39,10 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Собственик}
       AGENT_API_KEY: ${AGENT_API_KEY:-}
       SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
+      # Cloudflare Turnstile (по желание). Приложението е в мрежа с достъп до интернет, за да стига до Cloudflare.
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
+      TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
+      TURNSTILE_HOSTNAMES: ${TURNSTILE_HOSTNAMES:-}
     ports:
       - "${APP_PORT:-3000}:3000"
     # Минимални права: файловата система е само за четене, без root привилегии.

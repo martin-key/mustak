@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site/header";
 import { business } from "@/config/business";
 import { todayInSofia } from "@/lib/time";
 import { getPublicCatalog } from "@/server/queries/public";
+import { turnstileSiteKey } from "@/server/turnstile";
 
 export const metadata: Metadata = {
   title: "Запази час",
@@ -53,6 +54,7 @@ async function BookingLoader({ searchParams }: { searchParams: PageProps<"/zapaz
       maxDaysAhead={business.booking.maxDaysAhead}
       salonPhone={business.phone}
       salonPhoneHref={business.phoneHref}
+      turnstileSiteKey={turnstileSiteKey()}
     />
   );
 }

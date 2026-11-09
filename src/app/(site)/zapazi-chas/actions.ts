@@ -6,6 +6,7 @@ import { isBookingError } from "@/server/booking/errors";
 import { createBooking } from "@/server/booking/service";
 import { getDb } from "@/server/db/client";
 import { clientIp, rateLimit, RATE_LIMITS } from "@/server/rate-limit";
+import { TURNSTILE_MESSAGES, verifyTurnstile } from "@/server/turnstile";
 
 export interface BookingPayload {
   serviceId: string;
@@ -15,6 +16,8 @@ export interface BookingPayload {
   note: string;
   /** Скрито поле срещу ботове: хората не го виждат и го оставят празно. */
   website: string;
+  /** Токен от Cloudflare Turnstile (празен, ако защитата е изключена). */
+  turnstileToken: string;
 }
 
 export type BookingActionResult =
@@ -46,6 +49,13 @@ export async function createBookingAction(payload: BookingPayload): Promise<Book
       message: "Проверете попълнените данни.",
       fieldErrors: fieldErrors(parsed.error),
     };
+  }
+
+  // Проверка „Не съм робот“ (Cloudflare Turnstile), ако е включена. Само след валидацията,
+  // за да не се вика Cloudflare за заявки, които така или иначе се отказват.
+  const human = await verifyTurnstile(payload.turnstileToken, ip);
+  if (!human.ok) {
+    return { ok: false, code: "BOT_CHECK_FAILED", message: TURNSTILE_MESSAGES[human.reason] };
   }
 
   try {

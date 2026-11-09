@@ -3,9 +3,13 @@ import type { NextConfig } from "next";
 const isDev = process.env.NODE_ENV !== "production";
 
 // Всичко се сервира от нашия сървър: без външни скриптове, шрифтове или анализи.
+// Единственото изключение е Cloudflare Turnstile (проверката „Не съм робот“ при записване),
+// който се зарежда само на стъпката за потвърждение и само ако е включен с ключове.
+const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
 const contentSecurityPolicy = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' ${TURNSTILE_ORIGIN}${isDev ? " 'unsafe-eval'" : ""}`,
+  `frame-src ${TURNSTILE_ORIGIN}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
