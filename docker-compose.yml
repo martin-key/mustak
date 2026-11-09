@@ -43,6 +43,10 @@ services:
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:-}
       TURNSTILE_SECRET: ${TURNSTILE_SECRET:-}
       TURNSTILE_HOSTNAMES: ${TURNSTILE_HOSTNAMES:-}
+      # Чат асистент в n8n (по желание): docs/n8n-chat-agent.md
+      N8N_CHAT_WEBHOOK_URL: ${N8N_CHAT_WEBHOOK_URL:-}
+      N8N_CHAT_USERNAME: ${N8N_CHAT_USERNAME:-}
+      N8N_CHAT_PASSWORD: ${N8N_CHAT_PASSWORD:-}
     ports:
       - "${APP_PORT:-3000}:3000"
     # Минимални права: файловата система е само за четене, без root привилегии.

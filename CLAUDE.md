@@ -18,6 +18,7 @@
 - **Без секрети в кода.** Всичко тайно идва от променливи на средата; новите променливи се добавят и в `.env.example`, `docker-compose.yml` и README.
 - **Без външни услуги.** Без SaaS за данни, вход, анализи, карти или шрифтове по време на работа. CSP в `next.config.ts` позволява само собствения домейн; не го разхлабвайте. Снимките на бръснарите са само локални файлове от `public/`.
   - **Единственото изключение е Cloudflare Turnstile** (проверката „Не съм робот“ при записване), по решение на собственика. Тя е по избор: включва се само с `TURNSTILE_SITE_KEY` и `TURNSTILE_SECRET` и се зарежда само на последната стъпка от записването. Без ключовете сайтът не прави нищо към Cloudflare. CSP позволява само `https://challenges.cloudflare.com` за `script-src` и `frame-src`. Токенът се проверява на сървъра в `src/server/turnstile.ts` (fail closed: при грешка или липсваща връзка записването се отказва). Не добавяйте други външни услуги по този модел без изрично решение.
+  - **Чат асистентът в n8n** също е по решение на собственика и по избор (`N8N_CHAT_WEBHOOK_URL`). Браузърът говори само с `/api/public/chat`; сървърът (`src/server/chat.ts`) препраща към Chat Trigger-а на n8n с Basic Auth. CSP не се променя: адресът на n8n никога не стига до браузъра. Балончето е наш React компонент (`src/components/site/chat-bubble.tsx`), който говори протокола на Chat Trigger-а (`sendMessage`, `sessionId`, `chatInput` → `output`). Не ползваме `@n8n/chat`: дърпа Vue и голяма част от пакетите на n8n с 16 уязвимости в `npm audit`. Отговорите на модела се рисуват от `src/lib/chat-markdown.ts` като React елементи, никога като HTML. Агентът в n8n ползва само `/api/v1` с `AGENT_API_KEY`; не му давайте инструменти, които четат или променят чужди данни (клиентът може да пише каквото си иска). Workflow-ът се генерира от `scripts/n8n-workflow.ts` (`npm run n8n:workflow -- <адрес>`) и данните от `business.ts`: при промяна в API-то или в правилата за записване обновете скрипта и генерирайте `n8n/mustak-chat-agent.json` наново. Подробно: [docs/n8n-chat-agent.md](docs/n8n-chat-agent.md).
 - **Всяка промяна на базата е миграция.** Сменяте `src/server/db/schema.ts`, после `npm run db:generate` и commit-вате SQL файла от `drizzle/`. SQL, който Drizzle не описва (EXCLUDE ограничения и т.н.), е в ръчна миграция: `npx drizzle-kit generate --custom --name=...`. Никога не се пипа база на ръка и не се редактира приложена миграция.
 - **Двойното записване се пази от базата** (ограничение `appointments_no_overlap` в `drizzle/0001_appointments_no_overlap.sql`). Не го махайте и не го заобикаляйте. Списъкът с активни статуси там трябва да съвпада с `activeAppointmentStatuses` в схемата.
 - **Бизнес логиката е на едно място:** `src/server/booking/` (`service.ts` записва, отказва и сменя статуси; `availability.ts` е чистата функция за слотовете). Server Actions, админ панелът и API-то само валидират входа и викат тези функции. Не дублирайте логика в route handler-и или компоненти.
@@ -46,16 +47,18 @@
 src/config/business.ts      бизнес настройки
 src/app/(site)/             публичен сайт (/, /zapazi-chas, /chas/[token])
 src/app/admin/              вход и админ панел (+ actions.ts, manage-actions.ts)
-src/app/api/v1/             API за AI агента; src/app/api/public/ за формата
+src/app/api/v1/             API за AI агента; src/app/api/public/ за формата и чата
 src/server/booking/         бизнес логика: availability, service, schedule, manage, catalog
 src/server/db/              схема, връзка, миграции, seed
 src/server/auth/            пароли (argon2id) и сесии
 src/server/api/agent.ts     проверка на API ключа и формат на отговорите
 src/server/rate-limit.ts    лимити (брояч в Postgres)
+src/server/chat.ts          препращане на чата към n8n
 src/lib/                    time.ts, validation.ts, format.ts, labels.ts
 src/components/             site/, booking/, admin/, ui/
 drizzle/                    SQL миграции
-scripts/                    migrate, seed, admin-password (bundle-ват се за Docker)
+scripts/                    migrate, seed, admin-password (bundle-ват се за Docker), n8n-workflow
+n8n/                        генерираният n8n workflow за чат асистента
 tests/unit, tests/integration
 ```
 
@@ -68,6 +71,7 @@ npm run db:seed      # администратор + примерни данни
 npm run dev          # http://localhost:3000
 npm test             # unit + интеграционни тестове (нужен е Docker)
 npm run lint && npm run typecheck && npm run build
+npm run n8n:workflow -- https://mustak.example   # генерира n8n/mustak-chat-agent.json
 docker compose up --build   # целият стек
 ```
 
