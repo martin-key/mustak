@@ -165,8 +165,9 @@ describe("публичен endpoint за свободни часове", () => {
     const ok = await getPublicAvailability(req(url, { key: null }));
     expect(ok.status).toBe(200);
 
+    // Прозорецът е фиксиран (60 s): ако минутата се смени по време на цикъла, броячът започва отначало.
     let last = ok;
-    for (let i = 0; i < 60; i++) last = await getPublicAvailability(req(url, { key: null }));
+    for (let i = 0; i < 125 && last.status !== 429; i++) last = await getPublicAvailability(req(url, { key: null }));
     expect(last.status).toBe(429);
     expect(last.headers.get("retry-after")).toBeTruthy();
   });

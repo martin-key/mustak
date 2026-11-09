@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { toSofiaIso, toSofiaTime } from "@/lib/time";
 import { availabilityQuerySchema, fieldErrors } from "@/lib/validation";
 import { isBookingError } from "@/server/booking/errors";
@@ -8,6 +9,7 @@ import { clientIp, rateLimit, RATE_LIMITS } from "@/server/rate-limit";
 
 /** Свободни часове за формата за записване на сайта. */
 export async function GET(request: Request) {
+  await connection(); // винаги при заявка, никога при build
   const db = getDb();
   const limit = await rateLimit(db, `public-availability:${clientIp(request.headers)}`, RATE_LIMITS.publicAvailability);
   if (!limit.ok) return tooManyRequests(limit.retryAfterSeconds);

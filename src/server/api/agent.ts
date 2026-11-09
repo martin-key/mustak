@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import { centsToDecimal } from "@/lib/format";
 import { toSofiaDate, toSofiaIso, toSofiaTime } from "@/lib/time";
 import { business } from "@/config/business";
@@ -17,6 +18,7 @@ export type AgentAuth = { ok: true; keyId: string } | { ok: false; response: Res
  * Ключът се сравнява с постоянно време. Ако AGENT_API_KEY не е зададен, API-то е изключено.
  */
 export async function authorizeAgent(request: Request): Promise<AgentAuth> {
+  await connection(); // API-то винаги работи при заявка, никога при build
   const db = getDb();
   const ip = clientIp(request.headers);
   const perIp = await rateLimit(db, `api:ip:${ip}`, RATE_LIMITS.apiPerIp);

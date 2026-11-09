@@ -1,0 +1,15 @@
+.git
+.github
+.claude
+node_modules
+.next
+dist-scripts
+coverage
+tests
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Dockerfile
+docker-compose*.yml
