@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { createBookingAction } from "@/app/(site)/zapazi-chas/actions";
 import { BarberPortrait } from "@/components/site/barber-portrait";
 import { buttonClass } from "@/components/ui/button";
+import { inputClass } from "@/components/ui/input";
 import { formatDuration, formatPrice } from "@/lib/format";
 import {
   addDays,
@@ -687,12 +688,6 @@ function Field({
       )}
     </label>
   );
-}
-
-export function inputClass(invalid = false) {
-  return `block h-12 w-full rounded-[var(--radius-control)] border bg-bottle-950 px-4 text-base text-cream placeholder:text-cream-faint/70 focus:outline-none focus:ring-2 focus:ring-gold/60 ${
-    invalid ? "border-oxblood-bright" : "border-line focus:border-gold/70"
-  }`;
 }
 
 function StickyBar({ children }: { children: React.ReactNode }) {
