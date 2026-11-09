@@ -1,36 +1,83 @@
-# Docker образ в GitHub Container Registry (ghcr.io) при всеки commit в main.
+# Docker образ в GitHub Container Registry (ghcr.io).
 # Първо минават същите проверки като за pull request (ci.yml). Образът се публикува само ако са зелени.
 #
-#   ghcr.io/<собственик>/<repo>:latest       последният commit в main
-#   ghcr.io/<собственик>/<repo>:sha-<commit> конкретен commit (за връщане към стара версия)
+# При commit в main:
+#   ghcr.io/<собственик>/<repo>:latest        последният commit в main
+#   ghcr.io/<собственик>/<repo>:sha-<commit>  конкретен commit (за връщане към стара версия)
+#
+# При ръчно пускане (Actions → „Docker образ“ → Run workflow) с версия в semver формат, напр. 1.4.0:
+#   ghcr.io/<собственик>/<repo>:1.4.0         версията; не се презаписва, ако вече съществува
+#   ghcr.io/<собственик>/<repo>:sha-<commit>
+#   (latest не се мести: той винаги е последният commit в main)
 name: Docker образ
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия в semver формат, напр. 1.4.0 или 2.0.0-rc.1 (може и с v отпред)"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  # Публикуванията вървят едно след друго, за да остане latest на последния commit.
-  group: docker-publish-${{ github.ref }}
+  # Една обща опашка за цялото repo, не по клон: публикуванията вървят едно след друго.
+  # Така latest остава на последния commit, а два ръчни run-а с една и съща версия от различни
+  # клонове не могат и двата да видят тага като свободен. Ако чакат няколко run-а, GitHub пази
+  # само най-новия; по-старият чакащ се отказва (cancelled), но нищо не се презаписва.
+  group: docker-publish
   cancel-in-progress: false
 
 jobs:
+  # Проверява версията веднага, за да не чакаме тестовете при грешно въведена версия.
+  version:
+    name: Версия
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - id: check
+        env:
+          # Входът минава през env, а не директно в скрипта, за да не може да се вмъкне команда.
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ]; then
+            echo "Commit в main: тагове latest и sha-<commit>."
+            exit 0
+          fi
+          version="${INPUT_VERSION#v}"
+          # SemVer 2.0 без build metadata (+…): Docker таговете не позволяват знака +.
+          semver='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9][0-9]*|[0-9]*[a-zA-Z-][0-9a-zA-Z-]*))*)?$'
+          if [[ ! "$version" =~ $semver ]]; then
+            # Самият вход не се отпечатва: в лога той може да се изтълкува като команда към GitHub Actions.
+            echo "::error title=Невалидна версия::Версията не е във формат semver. Примери: 1.4.0, 2.0.0-rc.1, v1.4.0."
+            exit 1
+          fi
+          echo "Версия: $version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
   test:
     name: Тестове
+    needs: version
     uses: ./.github/workflows/ci.yml
 
   publish:
     name: Build и публикуване в GHCR
-    needs: test
+    needs: [version, test]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
       contents: read
       # GITHUB_TOKEN може да пише в пакетите на това repo. Не трябват други тайни.
       packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository }}
+      VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,13 +91,32 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Таговете и OCI етикетите. org.opencontainers.image.source свързва пакета с repo-то.
+      # Версията е неизменна: веднъж публикувана, не се презаписва с друг код.
+      # Fail closed: продължаваме само при категоричен отговор „not found“ от регистъра.
+      # Грешка в мрежата, DNS или правата спира публикуването, вместо да се приеме, че тагът е свободен.
+      - name: Версията още не е публикувана
+        if: env.VERSION != ''
+        run: |
+          if lookup=$(docker buildx imagetools inspect "$IMAGE:$VERSION" 2>&1); then
+            echo "::error title=Версията вече съществува::$IMAGE:$VERSION вече е публикуван. Пуснете отново с нова версия."
+            exit 1
+          fi
+          if ! grep -qxF "ERROR: $IMAGE:$VERSION: not found" <<< "$lookup"; then
+            echo "$lookup"
+            echo "::error title=Регистърът не потвърди версията::Не е ясно дали $IMAGE:$VERSION съществува. Публикуването спира, за да не се презапише версия. Пуснете отново по-късно."
+            exit 1
+          fi
+          echo "$IMAGE:$VERSION още не е публикуван."
+
+      # Таговете и OCI етикетите. org.opencontainers.image.source свързва пакета с repo-то,
+      # а org.opencontainers.image.version получава версията при ръчно пускане.
       - id: meta
         uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ${{ env.IMAGE }}
           tags: |
-            type=raw,value=latest
+            type=raw,value=latest,enable=${{ github.event_name == 'push' }}
+            type=semver,pattern={{version}},value=${{ env.VERSION }},enable=${{ env.VERSION != '' }}
             type=sha
 
       - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
