@@ -57,6 +57,7 @@ src/components/             site/, booking/, admin/, ui/
 drizzle/                    SQL миграции
 scripts/                    migrate, seed, admin-password (bundle-ват се за Docker)
 tests/unit, tests/integration
+.github/workflows/          ci.yml (проверки за всеки PR), docker-publish.yml (образ в GHCR от main)
 ```
 
 ## Команди
@@ -74,3 +75,10 @@ docker compose up --build   # целият стек
 Преди commit: `npm run lint`, `npm run typecheck`, `npm test`. При промени по страниците и `npm run build` (хваща грешки в Cache Components, които dev не хваща). И запис на стъпката в `docs/how-we-built-it.md`.
 
 Публичното repo е https://github.com/martin-key/mustak (клон `main`).
+
+## CI/CD
+
+- Всеки pull request към `main` минава през `.github/workflows/ci.yml`: lint, typecheck, unit и интеграционни тестове, build. Нова проверка се добавя там като npm скрипт, който работи и локално.
+- Всеки commit в `main` пуска `.github/workflows/docker-publish.yml`: същите проверки, после образ `ghcr.io/martin-key/mustak` с тагове `latest` и `sha-<commit>`. Само с `GITHUB_TOKEN`, без други тайни.
+- Действията (actions) са закачени към пълен commit SHA с коментар за версията. При обновяване сменете и двете.
+- CI тръгва от чисто копие без `.env` и без `.next`. Затова `typecheck` първо пуска `next typegen` (генерира `PageProps`/`LayoutProps`), а build не бива да чете база.

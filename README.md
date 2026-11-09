@@ -277,6 +277,41 @@ curl -s -X POST "$BASE/api/v1/bookings" \
   docker compose exec db pg_dump -U mustak mustak > backup.sql
   ```
 
+## CI/CD (GitHub Actions)
+
+Има два workflow-а в [`.github/workflows/`](.github/workflows/):
+
+| Кога | Workflow | Какво прави |
+| --- | --- | --- |
+| Pull request към `main` | [`ci.yml`](.github/workflows/ci.yml) („Тестове“) | Lint, проверка на типовете, unit и интеграционни тестове (истински PostgreSQL през Testcontainers) и `npm run build`. Нищо не се публикува. |
+| Commit в `main` | [`docker-publish.yml`](.github/workflows/docker-publish.yml) („Docker образ“) | Пуска същите проверки, после прави Docker образа (linux/amd64) и го качва в GitHub Container Registry. Ако проверките паднат, образът не се публикува. |
+
+Не трябват тайни: публикуването ползва вградения `GITHUB_TOKEN` с право `packages: write`. Всяко действие (action) е закачено към конкретен commit (SHA), а не към таг, който може да се премести.
+
+Образът е `ghcr.io/martin-key/mustak` (във fork: `ghcr.io/<вашият-акаунт>/<repo>`) и има два тага:
+
+- `latest`: последният commit в `main`;
+- `sha-<първите 7 знака от commit-а>`: конкретна версия, за връщане назад.
+
+**Пускане на сървъра без build.** В `docker-compose.yml` при услугата `app` заменете редовете `build: .` и `image: mustak-app:latest` с:
+
+```yaml
+    image: ghcr.io/martin-key/mustak:latest
+```
+
+После:
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+Миграциите се прилагат автоматично при стартиране. За конкретна версия сменете `latest` с `sha-…`.
+
+**Еднократни настройки в GitHub:**
+
+- След първото публикуване пакетът се вижда в профила (Packages → `mustak`). Ако е частен, сървърът влиза с `docker login ghcr.io` и personal access token с право `read:packages`. Публичен образ: Package settings → Change visibility → Public.
+- За да не се слива PR с червени тестове, задайте правило за `main` (Settings → Rules → Rulesets или Settings → Branches) с „Require status checks to pass“ и проверката „Lint, типове, тестове, build“.
+
 ## Структура
 
 ```
@@ -293,6 +328,7 @@ src/
 drizzle/                   SQL миграции (вкл. ограничението срещу двойно записване)
 scripts/                   migrate, seed, смяна на парола
 tests/unit, tests/integration
+.github/workflows/         CI: тестове за pull request, Docker образ в GHCR от main
 ```
 
 Подробните правила за разработка са в [CLAUDE.md](CLAUDE.md).
