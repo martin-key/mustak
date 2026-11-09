@@ -29,11 +29,23 @@ cp .env.example .env
 openssl rand -hex 24
 ```
 
-После:
+После изберете откъде да дойде образът на приложението:
 
-```bash
-docker compose up --build
-```
+- **Готовият образ** `ghcr.io/martin-key/mustak` от GitHub Container Registry. Не трябва build, нито кодът: стигат `docker-compose.yml` и `.env`. Образът е само за `linux/amd64` (обикновен сървър или компютър с Intel/AMD).
+
+  ```bash
+  docker compose pull && docker compose up -d
+  ```
+
+- **Образ от кода.** Работи на всяка архитектура, вкл. Mac с Apple Silicon и Raspberry Pi.
+
+  ```bash
+  docker compose up --build
+  ```
+
+  Локалният образ получава същото име като този от GHCR. На amd64 `docker compose pull` го заменя отново с публикувания.
+
+Друга версия на образа се избира с `APP_IMAGE_TAG` в `.env` (`latest`, `1.4.0`, `sha-<commit>`), а друг образ (напр. от fork) с `APP_IMAGE`. Таговете са описани в [CI/CD](#cicd-github-actions).
 
 При всяко стартиране контейнерът прилага миграциите и зарежда началните данни, ако липсват. При първото пускане това са администраторът и примерните данни: 6 услуги, 3 бръснари, работно време и няколко часа за днес и следващите два дни.
 
@@ -324,19 +336,13 @@ curl -s -X POST "$BASE/api/v1/bookings" \
 
 От терминала: `gh workflow run docker-publish.yml -f version=1.4.0`.
 
-**Пускане на сървъра без build.** В `docker-compose.yml` при услугата `app` заменете редовете `build: .` и `image: mustak-app:latest` с:
-
-```yaml
-    image: ghcr.io/martin-key/mustak:latest
-```
-
-После:
+**Пускане на сървъра без build.** `docker-compose.yml` вече ползва този образ (`APP_IMAGE` и `APP_IMAGE_TAG` в `.env`, по подразбиране `ghcr.io/martin-key/mustak:latest`). На сървъра трябват само `docker-compose.yml` и `.env`. Обновяване до последната версия:
 
 ```bash
 docker compose pull && docker compose up -d
 ```
 
-Миграциите се прилагат автоматично при стартиране. За конкретна версия сменете `latest` с `sha-…`.
+Миграциите се прилагат автоматично при стартиране. За конкретна версия задайте `APP_IMAGE_TAG=1.4.0` (или `sha-…` за връщане назад) и пуснете същата команда. Във fork задайте `APP_IMAGE=ghcr.io/<вашият-акаунт>/<repo>`.
 
 **Еднократни настройки в GitHub:**
 
