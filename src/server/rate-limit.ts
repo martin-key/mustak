@@ -34,6 +34,10 @@ export const RATE_LIMITS = {
   apiPerKey: { limit: 60, windowSeconds: 60 },
   /** Записвания през API-то. */
   apiBookingPerKey: { limit: 10, windowSeconds: 60 },
+  /** Съобщения към чат асистента, на IP. */
+  chatPerIp: { limit: 30, windowSeconds: 600 },
+  /** Съобщения към чат асистента общо (всяко струва заявка към езиковия модел). */
+  chatGlobal: { limit: 600, windowSeconds: 3600 },
 } satisfies Record<string, RateLimitRule>;
 
 /**

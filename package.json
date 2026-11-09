@@ -17,7 +17,8 @@
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "db:seed": "tsx --env-file-if-exists=.env scripts/seed.ts",
     "build:scripts": "node scripts/build-scripts.mjs",
-    "admin:password": "tsx --env-file-if-exists=.env scripts/admin-password.ts"
+    "admin:password": "tsx --env-file-if-exists=.env scripts/admin-password.ts",
+    "n8n:workflow": "tsx scripts/n8n-workflow.ts"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",
