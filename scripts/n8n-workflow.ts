@@ -34,6 +34,20 @@ function stableId(seed: string): string {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
 }
 
+/**
+ * Версиите на възлите (typeVersion). n8n не познава версия, по-нова от своята: такъв възел
+ * се показва без икона и като непознат. Затова ползваме версии, които са и в n8n 1.123,
+ * и в 2.12, и в по-новите. Проверено с nodes.json от Docker образите n8nio/n8n:1.123.85,
+ * 2.12.2 и 2.45.3. Не вдигайте версия, без да проверите в коя версия на n8n се е появила.
+ */
+const NODE_VERSIONS = {
+  chatTrigger: 1.4,
+  agent: 3,
+  lmChatAnthropic: 1.3,
+  memoryBufferWindow: 1.3,
+  httpRequestTool: 4.3,
+} as const;
+
 // Имената на възлите-инструменти стават имена на инструментите за модела: само латиница.
 const TRIGGER = "Чат съобщение";
 const AGENT = "Асистент";
@@ -105,7 +119,7 @@ function apiTool(name: string, position: [number, number], parameters: Record<st
       },
     },
     type: "n8n-nodes-base.httpRequestTool",
-    typeVersion: 4.5,
+    typeVersion: NODE_VERSIONS.httpRequestTool,
     position,
     id: stableId(name),
     name,
@@ -152,7 +166,7 @@ const workflow = {
         },
       },
       type: "@n8n/n8n-nodes-langchain.chatTrigger",
-      typeVersion: 1.5,
+      typeVersion: NODE_VERSIONS.chatTrigger,
       position: [0, 0],
       id: stableId(TRIGGER),
       name: TRIGGER,
@@ -169,7 +183,7 @@ const workflow = {
         },
       },
       type: "@n8n/n8n-nodes-langchain.agent",
-      typeVersion: 3.1,
+      typeVersion: NODE_VERSIONS.agent,
       position: [260, 0],
       id: stableId(AGENT),
       name: AGENT,
@@ -180,7 +194,7 @@ const workflow = {
         options: { maxTokensToSample: 1024, temperature: 0.3 },
       },
       type: "@n8n/n8n-nodes-langchain.lmChatAnthropic",
-      typeVersion: 1.6,
+      typeVersion: NODE_VERSIONS.lmChatAnthropic,
       position: [0, 260],
       id: stableId(MODEL),
       name: MODEL,
@@ -192,7 +206,7 @@ const workflow = {
         contextWindowLength: 20,
       },
       type: "@n8n/n8n-nodes-langchain.memoryBufferWindow",
-      typeVersion: 1.4,
+      typeVersion: NODE_VERSIONS.memoryBufferWindow,
       position: [180, 260],
       id: stableId(MEMORY),
       name: MEMORY,
