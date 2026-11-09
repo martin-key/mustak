@@ -60,6 +60,7 @@ drizzle/                    SQL миграции
 scripts/                    migrate, seed, admin-password (bundle-ват се за Docker), n8n-workflow
 n8n/                        генерираният n8n workflow за чат асистента
 tests/unit, tests/integration
+.github/workflows/          ci.yml (проверки за всеки PR), docker-publish.yml (образ в GHCR от main)
 ```
 
 ## Команди
@@ -78,3 +79,11 @@ docker compose up --build   # целият стек
 Преди commit: `npm run lint`, `npm run typecheck`, `npm test`. При промени по страниците и `npm run build` (хваща грешки в Cache Components, които dev не хваща). И запис на стъпката в `docs/how-we-built-it.md`.
 
 Публичното repo е https://github.com/martin-key/mustak (клон `main`).
+
+## CI/CD
+
+- Всеки pull request към `main` минава през `.github/workflows/ci.yml`: lint, typecheck, unit и интеграционни тестове, build. Нова проверка се добавя там като npm скрипт, който работи и локално.
+- Всеки commit в `main` пуска `.github/workflows/docker-publish.yml`: същите проверки, после образ `ghcr.io/martin-key/mustak` с тагове `latest` и `sha-<commit>`. Само с `GITHUB_TOKEN`, без други тайни.
+- Ръчното пускане на същия workflow иска версия в semver (`1.4.0`, `2.0.0-rc.1`, `v` отпред се маха) и добавя тага `<версия>` вместо `latest`. Версията се проверява в задачата `version` преди тестовете. Вече публикувана версия не се презаписва: всички публикувания са в една обща опашка (`concurrency: docker-publish`, не по клон), а проверката на тага продължава само при отговор „not found“ от регистъра (fail closed). Входът стига до скрипта само през `env`, никога директно с `${{ }}`.
+- Действията (actions) са закачени към пълен commit SHA с коментар за версията. При обновяване сменете и двете.
+- CI тръгва от чисто копие без `.env` и без `.next`. Затова `typecheck` първо пуска `next typegen` (генерира `PageProps`/`LayoutProps`), а build не бива да чете база.

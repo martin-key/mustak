@@ -1,5 +1,8 @@
+import { eq, sum } from "drizzle-orm";
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST as postChat } from "@/app/api/public/chat/route";
+import { sha256 } from "@/server/crypto";
+import { rateLimits } from "@/server/db/schema";
 import { RATE_LIMITS } from "@/server/rate-limit";
 import { closeTestDb, resetDb, testDb } from "./helpers";
 
@@ -79,5 +82,25 @@ describe("чат асистент през /api/public/chat", () => {
     expect(limited?.headers.get("retry-after")).toBeTruthy();
     // Друг IP не е засегнат.
     expect((await postChat(chatRequest(message, { ip: "198.51.100.100" }))).status).toBe(200);
+  });
+
+  it("общият лимит брои само съобщенията, които отиват към n8n", async () => {
+    const fetchMock = vi.fn(async () => Response.json({ output: "ок" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const ip = "198.51.100.150";
+    const statuses: number[] = [];
+    // Невалидни съобщения и толкова валидни, че IP-то да мине лимита си.
+    for (let i = 0; i < 3; i++) statuses.push((await postChat(chatRequest({ ...message, chatInput: "" }, { ip }))).status);
+    for (let i = 0; i < RATE_LIMITS.chatPerIp.limit + 10; i++) statuses.push((await postChat(chatRequest(message, { ip }))).status);
+    expect(statuses).toContain(400);
+    expect(statuses).toContain(429);
+
+    const [row] = await db
+      .select({ total: sum(rateLimits.count) })
+      .from(rateLimits)
+      .where(eq(rateLimits.key, sha256("chat:global")));
+    // Общият брояч е равен на заявките, стигнали до n8n: невалидните и спрените на IP не се броят.
+    expect(Number(row.total)).toBe(fetchMock.mock.calls.length);
+    expect(fetchMock.mock.calls.length).toBe(statuses.filter((status) => status === 200).length);
   });
 });

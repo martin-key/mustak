@@ -97,6 +97,7 @@ export function ChatBubble() {
     const text = input.trim();
     if (!text || sending || messages === null) return;
 
+    const requestSession = sessionId.current;
     const withUser = [...messages, { id: newId(), role: "user" as const, text }];
     setMessages(withUser);
     setInput("");
@@ -107,7 +108,7 @@ export function ChatBubble() {
       const response = await fetch("/api/public/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "sendMessage", sessionId: sessionId.current, chatInput: text }),
+        body: JSON.stringify({ action: "sendMessage", sessionId: requestSession, chatInput: text }),
       });
       const data = (await response.json()) as { output?: unknown };
       if (typeof data.output === "string" && data.output.trim()) reply = data.output;
@@ -115,10 +116,12 @@ export function ChatBubble() {
       // остава OFFLINE
     }
 
+    setSending(false);
+    // Междувременно е започнат нов разговор: отговорът е от стария и не се показва.
+    if (sessionId.current !== requestSession) return;
     const withReply = [...withUser, { id: newId(), role: "bot" as const, text: reply }];
     setMessages(withReply);
-    saveConversation(sessionId.current, withReply);
-    setSending(false);
+    saveConversation(requestSession, withReply);
     inputRef.current?.focus();
   }
 
@@ -130,6 +133,7 @@ export function ChatBubble() {
   }
 
   function startOver() {
+    if (sending) return;
     sessionId.current = newId();
     setMessages([]);
     saveConversation(sessionId.current, []);
@@ -137,8 +141,8 @@ export function ChatBubble() {
   }
 
   const shown = [...WELCOME, ...(messages ?? [])];
-  // На страницата за записване мобилната лента с бутоните е долу: балончето стои над нея.
-  const lifted = pathname === "/zapazi-chas";
+  // На началната страница и при записване на телефон има фиксирана лента с бутон долу: балончето стои над нея.
+  const lifted = pathname === "/" || pathname === "/zapazi-chas";
 
   return (
     <>
@@ -158,7 +162,8 @@ export function ChatBubble() {
             <button
               type="button"
               onClick={startOver}
-              className="grid size-9 shrink-0 place-items-center rounded-full text-cream-muted transition-colors hover:bg-bottle-700 hover:text-cream"
+              disabled={sending}
+              className="disabled:pointer-events-none disabled:opacity-40 grid size-9 shrink-0 place-items-center rounded-full text-cream-muted transition-colors hover:bg-bottle-700 hover:text-cream"
               aria-label="Нов разговор"
               title="Нов разговор"
             >

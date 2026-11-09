@@ -200,6 +200,15 @@
         "toolDescription": "Записва час. Вика се само след изрично потвърждение от клиента. Връща записания час и cancelUrl (линк за отказ) или грешка с обяснение.",
         "method": "POST",
         "url": "https://mustak.example/api/v1/bookings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ 'chat:' + $fromAI('serviceId', \"id на услугата от list_services\", 'string') + ':' + $fromAI('start', \"началото на часа точно както е в полето start от check_availability, например 2026-11-12T10:30:00+02:00\", 'string') + ':' + $fromAI('customerPhone', \"телефон на клиента, например 0881234567\", 'string').replace(/\\D/g, '') }}"
+            }
+          ]
+        },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ serviceId: $fromAI('serviceId', \"id на услугата от list_services\", 'string'), barberId: $fromAI('barberId', \"id на бръснаря от list_barbers или празен низ, ако клиентът няма предпочитан бръснар\", 'string') || null, start: $fromAI('start', \"началото на часа точно както е в полето start от check_availability, например 2026-11-12T10:30:00+02:00\", 'string'), customer: { name: $fromAI('customerName', \"име на клиента\", 'string'), phone: $fromAI('customerPhone', \"телефон на клиента, например 0881234567\", 'string'), email: $fromAI('customerEmail', \"имейл на клиента или празен низ\", 'string') || null }, note: $fromAI('note', \"бележка от клиента или празен низ\", 'string') || null }) }}",
