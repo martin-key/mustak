@@ -21,16 +21,10 @@ export async function POST(request: Request) {
   // Само от нашия сайт: чужди страници не могат да ползват асистента през браузъра на посетителя.
   if (!fromOurSite(request)) return json({ output: CHAT_MESSAGES.unavailable }, { status: 403 });
 
+  // Първо лимитът на IP: заявки над него не стигат до общия брояч.
   const db = getDb();
-  const ip = clientIp(request.headers);
-  const [perIp, global] = await Promise.all([
-    rateLimit(db, `chat:ip:${ip}`, RATE_LIMITS.chatPerIp),
-    rateLimit(db, "chat:global", RATE_LIMITS.chatGlobal),
-  ]);
-  if (!perIp.ok || !global.ok) {
-    const retryAfter = Math.max(perIp.ok ? 0 : perIp.retryAfterSeconds, global.ok ? 0 : global.retryAfterSeconds);
-    return json({ output: CHAT_MESSAGES.rateLimited }, { status: 429, headers: { "Retry-After": String(retryAfter) } });
-  }
+  const perIp = await rateLimit(db, `chat:ip:${clientIp(request.headers)}`, RATE_LIMITS.chatPerIp);
+  if (!perIp.ok) return rateLimited(perIp.retryAfterSeconds);
 
   const raw = await request.text();
   let body: unknown = null;
@@ -44,9 +38,18 @@ export async function POST(request: Request) {
   const parsed = chatRequestSchema.safeParse(body);
   if (!parsed.success) return json({ output: CHAT_MESSAGES.invalid }, { status: 400 });
 
+  // Общият лимит брои само валидни съобщения, които наистина отиват към n8n (и към модела).
+  // Иначе един клиент с невалидни или вече спрени заявки би изчерпал чата за всички.
+  const global = await rateLimit(db, "chat:global", RATE_LIMITS.chatGlobal);
+  if (!global.ok) return rateLimited(global.retryAfterSeconds);
+
   const output = await forwardChatMessage(parsed.data, config);
   if (output === null) return json({ output: CHAT_MESSAGES.unavailable }, { status: 502 });
   return json({ output });
+}
+
+function rateLimited(retryAfterSeconds: number): Response {
+  return json({ output: CHAT_MESSAGES.rateLimited }, { status: 429, headers: { "Retry-After": String(retryAfterSeconds) } });
 }
 
 /** Заявка без Origin (curl, сървър) минава; с Origin трябва да е нашият адрес. */

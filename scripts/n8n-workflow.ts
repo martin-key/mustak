@@ -117,14 +117,23 @@ const fromAI = (key: string, description: string) => `$fromAI('${key}', ${JSON.s
 
 const serviceIdArg = fromAI("serviceId", "id на услугата от list_services");
 const barberIdArg = fromAI("barberId", "id на бръснаря от list_barbers или празен низ, ако клиентът няма предпочитан бръснар");
+const startArg = fromAI("start", "началото на часа точно както е в полето start от check_availability, например 2026-11-12T10:30:00+02:00");
+const phoneArg = fromAI("customerPhone", "телефон на клиента, например 0881234567");
+
+/**
+ * Idempotency-Key: едно и също записване (услуга + начален час + телефон) дава един и същ ключ.
+ * Ако n8n повтори заявката или моделът извика инструмента два пъти, API-то връща вече създадения
+ * час ("replayed": true), вместо да запише клиента втори път при друг свободен бръснар.
+ */
+const idempotencyKey = `={{ 'chat:' + ${serviceIdArg} + ':' + ${startArg} + ':' + ${phoneArg}.replace(/\\D/g, '') }}`;
 
 const bookingBody =
   "={{ JSON.stringify({ " +
   [
     `serviceId: ${serviceIdArg}`,
     `barberId: ${barberIdArg} || null`,
-    `start: ${fromAI("start", "началото на часа точно както е в полето start от check_availability, например 2026-11-12T10:30:00+02:00")}`,
-    `customer: { name: ${fromAI("customerName", "име на клиента")}, phone: ${fromAI("customerPhone", "телефон на клиента, например 0881234567")}, email: ${fromAI("customerEmail", "имейл на клиента или празен низ")} || null }`,
+    `start: ${startArg}`,
+    `customer: { name: ${fromAI("customerName", "име на клиента")}, phone: ${phoneArg}, email: ${fromAI("customerEmail", "имейл на клиента или празен низ")} || null }`,
     `note: ${fromAI("note", "бележка от клиента или празен низ")} || null`,
   ].join(", ") +
   " }) }}";
@@ -214,6 +223,8 @@ const workflow = {
         "Записва час. Вика се само след изрично потвърждение от клиента. Връща записания час и cancelUrl (линк за отказ) или грешка с обяснение.",
       method: "POST",
       url: `${baseUrl}/api/v1/bookings`,
+      sendHeaders: true,
+      headerParameters: { parameters: [{ name: "Idempotency-Key", value: idempotencyKey }] },
       sendBody: true,
       specifyBody: "json",
       jsonBody: bookingBody,
