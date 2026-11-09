@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Дизайн токени. Идея: витрина на стара бръснарница. Тъмнозелено като кожените кресла,
+ * позлатени букви като на стъклото, кремаво като пяната за бръснене.
+ */
+@theme {
+  --color-bottle-950: #0b1813;
+  --color-bottle-900: #10201a;
+  --color-bottle-800: #172b23;
+  --color-bottle-700: #1f392e;
+  --color-bottle-600: #2c4a3d;
+  --color-line: #2d453a;
+
+  --color-cream: #efe6d2;
+  --color-cream-muted: #b5bba8;
+  --color-cream-faint: #7f8a7c;
+
+  --color-gold: #d2a859;
+  --color-gold-bright: #f0d38c;
+  --color-gold-deep: #a97c35;
+
+  --color-oxblood: #8e2f2a;
+  --color-oxblood-bright: #e58a7f;
+  --color-sage: #8fbf9a;
+
+  --font-display: var(--font-prata), "Georgia", serif;
+  --font-sans: var(--font-golos), ui-sans-serif, system-ui, sans-serif;
+
+  --radius-control: 0.5rem;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background-color: var(--color-bottle-900);
+    color: var(--color-cream);
+    font-family: var(--font-sans);
+    font-feature-settings: "kern", "liga";
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-gold);
+    color: var(--color-bottle-950);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-gold-bright);
+    outline-offset: 3px;
+    border-radius: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Позлата: градиент като златно листо на стъкло, с лека сянка за дълбочина. */
+  .gilded {
+    background-image: linear-gradient(
+      172deg,
+      var(--color-gold-bright) 0%,
+      #e2bd6e 38%,
+      var(--color-gold-deep) 52%,
+      #d9b264 66%,
+      var(--color-gold-bright) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.55)) drop-shadow(0 0 18px rgb(210 168 89 / 0.12));
+  }
+
+  /* Пунктирът в ценоразписа между името и цената. */
+  .leader {
+    flex: 1 1 auto;
+    min-width: 1.5rem;
+    margin: 0 0.6rem;
+    transform: translateY(-0.3em);
+    border-bottom: 1px dotted color-mix(in oklab, var(--color-cream-muted) 55%, transparent);
+  }
+
+  /* Рамка като огледало с арка. */
+  .mirror {
+    border-radius: 999px 999px 0.75rem 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
