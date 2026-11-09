@@ -89,3 +89,21 @@ docker compose pull && docker compose up -d   # целият стек с обр�
 - Ръчното пускане на същия workflow иска версия в semver (`1.4.0`, `2.0.0-rc.1`, `v` отпред се маха) и добавя тага `<версия>` вместо `latest`. Версията се проверява в задачата `version` преди тестовете. Вече публикувана версия не се презаписва: всички публикувания са в една обща опашка (`concurrency: docker-publish`, не по клон), а проверката на тага продължава само при отговор „not found“ от регистъра (fail closed). Входът стига до скрипта само през `env`, никога директно с `${{ }}`.
 - Действията (actions) са закачени към пълен commit SHA с коментар за версията. При обновяване сменете и двете.
 - CI тръгва от чисто копие без `.env` и без `.next`. Затова `typecheck` първо пуска `next typegen` (генерира `PageProps`/`LayoutProps`), а build не бива да чете база.
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. When in doubt, invoke the skill.
+
+Key routing rules:
+- Product ideas/brainstorming → invoke /office-hours
+- Strategy/scope → invoke /plan-ceo-review
+- Architecture → invoke /plan-eng-review
+- Design system/plan review → invoke /design-consultation or /plan-design-review
+- Full review pipeline → invoke /autoplan
+- Bugs/errors → invoke /investigate
+- QA/testing site behavior → invoke /qa or /qa-only
+- Code review/diff check → invoke /review
+- Visual polish → invoke /design-review
+- Ship/deploy/PR → invoke /ship or /land-and-deploy
+- Save progress → invoke /context-save
+- Resume context → invoke /context-restore

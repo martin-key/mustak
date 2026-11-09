@@ -35,4 +35,5 @@ export const bookingErrorStatus: Record<BookingErrorCode, number> = {
   ALREADY_CANCELLED: 409,
   NOT_CANCELLABLE: 409,
   TOO_LATE_TO_CANCEL: 409,
+  IDEMPOTENCY_KEY_REUSED: 422,
 };

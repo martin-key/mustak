@@ -245,6 +245,33 @@ describe("други правила", () => {
     expect(again.appointment.id).toBe(first.appointment.id);
   });
 
+  it("същият Idempotency-Key с други данни се отказва, без да връща записания час", async () => {
+    const { service, barbers } = await createFixture(db, 2);
+    const start = sofiaToUtc(futureDate(), "14:00");
+    const input = bookingInput(service.id, start, {
+      source: "api",
+      idempotencyKey: "api:same-key",
+      customer: { name: "Мария Иванова", phone: uniquePhone(), email: "maria@example.com" },
+      note: "Бележка на Мария",
+    });
+    const first = await createBooking(db, input);
+
+    const variants: Partial<CreateBookingInput>[] = [
+      { customer: { ...input.customer, name: "Някой друг" } },
+      { customer: { ...input.customer, email: null } },
+      { customer: { ...input.customer, phone: uniquePhone() } },
+      { note: null },
+      { start: sofiaToUtc(futureDate(), "15:00") },
+      { barberId: barbers.find((b) => b.id !== first.appointment.barberId)!.id },
+    ];
+    for (const change of variants) {
+      await expect(createBooking(db, { ...input, ...change })).rejects.toMatchObject({ code: "IDEMPOTENCY_KEY_REUSED" });
+    }
+    // Без barberId („първият свободен“) бръснарят не се сравнява.
+    await expect(createBooking(db, { ...input, barberId: null })).resolves.toMatchObject({ replayed: true });
+    expect(await db.select().from(appointments)).toHaveLength(1);
+  });
+
   it("админът не може да върне отказан час, ако времето вече е заето", async () => {
     const { service, barbers } = await createFixture(db);
     const start = sofiaToUtc(futureDate(), "16:00");
