@@ -129,6 +129,30 @@ describe("API за AI агента", () => {
     expect(await db.select().from(appointments)).toHaveLength(1);
   });
 
+  it("чужд Idempotency-Key с други данни не връща личните данни от записания час", async () => {
+    const { service } = await createFixture(db);
+    const start = `${futureDate()}T11:00`;
+    const phone = uniquePhone();
+    const headers = { "content-type": "application/json", "idempotency-key": `chat:${service.id}:${start}:${phone}` };
+    const victim = JSON.stringify({
+      serviceId: service.id,
+      start,
+      customer: { name: "Мария Иванова", phone, email: "maria@example.com" },
+      note: "Бележка на Мария",
+    });
+    const first = await postBooking(req("/api/v1/bookings", { method: "POST", body: victim, headers }));
+    expect(first.status).toBe(201);
+
+    // Друг посетител знае услугата, часа и телефона, но не и останалите данни.
+    const attacker = JSON.stringify({ serviceId: service.id, start, customer: { name: "Някой друг", phone } });
+    const second = await postBooking(req("/api/v1/bookings", { method: "POST", body: attacker, headers }));
+    expect(second.status).toBe(422);
+    const text = await second.text();
+    expect(JSON.parse(text).error.code).toBe("IDEMPOTENCY_KEY_REUSED");
+    for (const secret of ["Мария", "maria@example.com", "Бележка"]) expect(text).not.toContain(secret);
+    expect(await db.select().from(appointments)).toHaveLength(1);
+  });
+
   it("връща ясни грешки при невалидни данни", async () => {
     const { service } = await createFixture(db);
 

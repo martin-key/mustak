@@ -205,7 +205,7 @@
           "parameters": [
             {
               "name": "Idempotency-Key",
-              "value": "={{ 'chat:' + $fromAI('serviceId', \"id на услугата от list_services\", 'string') + ':' + $fromAI('start', \"началото на часа точно както е в полето start от check_availability, например 2026-11-12T10:30:00+02:00\", 'string') + ':' + $fromAI('customerPhone', \"телефон на клиента, например 0881234567\", 'string').replace(/\\D/g, '') }}"
+              "value": "={{ 'chat:' + ($('Чат съобщение').isExecuted ? $('Чат съобщение').first().json.sessionId : 'manual') + ':' + $fromAI('serviceId', \"id на услугата от list_services\", 'string') + ':' + $fromAI('start', \"началото на часа точно както е в полето start от check_availability, например 2026-11-12T10:30:00+02:00\", 'string') + ':' + $fromAI('customerPhone', \"телефон на клиента, например 0881234567\", 'string').replace(/\\D/g, '') }}"
             }
           ]
         },
