@@ -45,7 +45,7 @@ async function BookingStatus({
   const date = toSofiaDate(booking.startsAt);
 
   return (
-    <div className="mx-auto max-w-xl px-5 py-12 md:py-16">
+    <div className="rise mx-auto max-w-xl px-5 py-12 md:py-16">
       <Mustache className={`w-20 ${cancelled ? "text-cream-faint" : "text-gold"}`} />
       <h1 className={`mt-4 font-display text-4xl md:text-5xl ${cancelled ? "text-cream" : "gilded"}`}>{title}</h1>
       {isNew && !cancelled && (
@@ -70,7 +70,7 @@ async function BookingStatus({
       </dl>
 
       {!cancelled && !past && (
-        <section className="mt-10 rounded-xl border border-gold/30 bg-bottle-950/60 p-5">
+        <section className="panel mt-10 p-5">
           <h2 className="font-display text-xl text-cream">Запази този линк</h2>
           <p className="mt-2 text-sm text-cream-muted">
             Само с него можеш да откажеш часа. Добави страницата в отметките или копирай линка.

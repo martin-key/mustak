@@ -22,7 +22,7 @@ export function timeOffOn(barber: ScheduleBarber, date: LocalDate) {
 export function AppointmentCard({ appointment }: { appointment: ScheduleAppointment }) {
   const style = STATUS_STYLES[appointment.status];
   return (
-    <article className={`rounded-lg border bg-bottle-900 p-3.5 ${style.card}`}>
+    <article className={`rounded-xl border bg-gradient-to-b from-bottle-700/70 to-bottle-900/90 p-3.5 shadow-[0_16px_32px_-20px_rgb(0_0_0/0.8)] ${style.card}`}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="font-display text-lg tabular-nums text-cream">
           {toSofiaTime(appointment.startsAt)}
@@ -105,9 +105,9 @@ export function DayNav({ basePath, date, prev, next, today, todayLabel }: {
 
 export function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-lg border border-line bg-bottle-900 px-4 py-3">
+    <div className="panel-soft px-4 py-3">
       <p className="text-sm text-cream-muted">{label}</p>
-      <p className="mt-1 font-display text-2xl tabular-nums text-cream">{value}</p>
+      <p className="gilded mt-1 font-display text-2xl tabular-nums">{value}</p>
     </div>
   );
 }

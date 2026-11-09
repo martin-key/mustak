@@ -28,7 +28,7 @@ export function AdminNavLinks({ pathname }: { pathname: string | null }) {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={`inline-flex h-9 items-center rounded-md px-3 text-sm transition-colors ${
-                  active ? "bg-bottle-700 text-cream" : "text-cream-muted hover:bg-bottle-800 hover:text-cream"
+                  active ? "bg-gradient-to-b from-bottle-600 to-bottle-700 text-cream shadow-[inset_0_-2px_0_var(--color-gold)]" : "text-cream-muted hover:bg-bottle-800 hover:text-cream"
                 }`}
               >
                 {item.label}

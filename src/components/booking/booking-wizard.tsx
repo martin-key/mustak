@@ -262,7 +262,7 @@ export function BookingWizard(props: Props) {
 
   // --- Изглед -----------------------------------------------------------------------------------
   const summary = (
-    <dl className="mb-8 grid gap-x-6 gap-y-2 rounded-xl border border-line bg-bottle-950/60 p-4 text-sm sm:grid-cols-[auto_1fr]">
+    <dl className="panel-soft mb-8 grid gap-x-6 gap-y-2 p-4 text-sm sm:grid-cols-[auto_1fr]">
       {service && stepIndex > 0 && (
         <SummaryRow label="Услуга" onEdit={() => goTo("usluga")}>
           {service.name}, {formatDuration(service.durationMin)}, {formatPrice(service.priceCents)}
@@ -287,7 +287,7 @@ export function BookingWizard(props: Props) {
   );
 
   return (
-    <div className="mx-auto w-full max-w-2xl px-5 pb-32 pt-8 md:pt-12">
+    <div className="mx-auto w-full max-w-2xl px-5 pb-32 pt-8 md:pt-12 rise">
       <div className="mb-6 flex items-center justify-between gap-4">
         <button
           type="button"
@@ -302,7 +302,7 @@ export function BookingWizard(props: Props) {
       </div>
       <ol className="mb-8 grid grid-cols-6 gap-1.5" aria-hidden>
         {STEPS.map((s, i) => (
-          <li key={s.key} className={`h-1 rounded-full ${i <= stepIndex ? "bg-gold" : "bg-bottle-700"}`} />
+          <li key={s.key} className={`h-1 rounded-full ${i <= stepIndex ? "bg-gradient-to-r from-gold-bright to-gold-deep shadow-[0_0_12px_rgb(210_168_89/0.5)]" : "bg-bottle-700"}`} />
         ))}
       </ol>
 
@@ -323,7 +323,7 @@ export function BookingWizard(props: Props) {
                 type="button"
                 onClick={() => chooseService(s.id)}
                 aria-pressed={s.id === serviceId}
-                className="group -mx-3 block w-[calc(100%+1.5rem)] rounded-lg px-3 py-5 text-left transition-colors hover:bg-bottle-800 aria-pressed:bg-bottle-800"
+                className="group -mx-3 block w-[calc(100%+1.5rem)] rounded-xl px-3 py-5 text-left transition-colors hover:bg-gradient-to-r hover:from-gold/[0.08] hover:to-transparent aria-pressed:bg-gold/10"
               >
                 <span className="flex items-baseline">
                   <span className="font-display text-xl text-cream group-hover:text-gold-bright">{s.name}</span>
@@ -393,9 +393,9 @@ export function BookingWizard(props: Props) {
                   aria-label={`${formatDateLong(d)}${enabled ? "" : ", няма свободни бръснари"}`}
                   className={`flex aspect-square flex-col items-center justify-center rounded-lg border text-sm tabular-nums transition-colors ${
                     d === date
-                      ? "border-gold bg-gold text-bottle-950"
+                      ? "chip-active"
                       : enabled
-                        ? "border-line bg-bottle-800 text-cream hover:border-gold/70"
+                        ? "border-line/80 bg-gradient-to-b from-bottle-700/80 to-bottle-800/80 text-cream hover:border-gold/70"
                         : "border-transparent text-cream-faint/50 line-through"
                   }`}
                 >
@@ -604,8 +604,8 @@ function TimeStep({
                 aria-pressed={s.start === selected}
                 className={`h-12 rounded-lg border text-base tabular-nums transition-colors ${
                   s.start === selected
-                    ? "border-gold bg-gold text-bottle-950"
-                    : "border-line bg-bottle-800 text-cream hover:border-gold/70"
+                    ? "chip-active"
+                    : "border-line/80 bg-gradient-to-b from-bottle-700/80 to-bottle-800/80 text-cream hover:border-gold/70"
                 }`}
               >
                 {s.time}
@@ -633,7 +633,7 @@ function ChoiceButton({
       onClick={onClick}
       aria-pressed={selected}
       className={`flex w-full items-center gap-4 rounded-xl border p-3 text-left transition-colors ${
-        selected ? "border-gold bg-bottle-800" : "border-line bg-bottle-900 hover:border-gold/60 hover:bg-bottle-800"
+        selected ? "border-gold/80 bg-gradient-to-r from-gold/15 to-bottle-800" : "border-line bg-gradient-to-b from-bottle-800/80 to-bottle-900/80 hover:border-gold/60"
       }`}
     >
       {children}

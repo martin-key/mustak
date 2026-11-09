@@ -37,7 +37,14 @@
   }
 
   body {
-    background-color: var(--color-bottle-900);
+    background-color: var(--color-bottle-950);
+    /* Тъмнозелено като кожа, с топло златно сияние отгоре: осветена витрина вечер. */
+    background-image:
+      radial-gradient(1100px 620px at 50% -8%, rgb(210 168 89 / 0.13), transparent 62%),
+      radial-gradient(800px 520px at 100% 28%, rgb(44 74 61 / 0.55), transparent 65%),
+      radial-gradient(900px 640px at 0% 72%, rgb(31 57 46 / 0.65), transparent 65%),
+      linear-gradient(180deg, #10201a 0%, #0d1b16 55%, #0a1611 100%);
+    background-attachment: fixed;
     color: var(--color-cream);
     font-family: var(--font-sans);
     font-feature-settings: "kern", "liga";
@@ -57,20 +64,92 @@
 }
 
 @layer components {
-  /* Позлата: градиент като златно листо на стъкло, с лека сянка за дълбочина. */
+  /* Позлата: градиент като златно листо на стъкло, с отблясък, който минава веднъж при зареждане. */
   .gilded {
     background-image: linear-gradient(
-      172deg,
-      var(--color-gold-bright) 0%,
-      #e2bd6e 38%,
-      var(--color-gold-deep) 52%,
-      #d9b264 66%,
+      100deg,
+      #c99a4a 0%,
+      var(--color-gold-bright) 18%,
+      #fff1c9 26%,
+      var(--color-gold-bright) 34%,
+      #d9b264 50%,
+      var(--color-gold-deep) 62%,
+      #e8c57a 80%,
       var(--color-gold-bright) 100%
     );
+    background-size: 220% 100%;
+    background-position: 0% 50%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
-    filter: drop-shadow(0 1px 0 rgb(0 0 0 / 0.55)) drop-shadow(0 0 18px rgb(210 168 89 / 0.12));
+    filter: drop-shadow(0 2px 0 rgb(0 0 0 / 0.55)) drop-shadow(0 0 28px rgb(210 168 89 / 0.22));
+  }
+  .gilded-sheen {
+    animation: sheen 2.6s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both;
+  }
+  @keyframes sheen {
+    from { background-position: 100% 50%; }
+    to { background-position: 0% 50%; }
+  }
+
+  /* Единственото „влизане“ на страницата: витрината се появява. */
+  .rise {
+    animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* Панел с позлатена рамка (градиент по ръба) и дълбока сянка. */
+  .panel {
+    border: 1px solid transparent;
+    border-radius: 1.25rem;
+    background:
+      linear-gradient(180deg, rgb(24 45 37 / 0.94), rgb(11 24 19 / 0.94)) padding-box,
+      linear-gradient(155deg, rgb(240 211 140 / 0.55), rgb(45 69 58 / 0.55) 38%, rgb(45 69 58 / 0.4) 70%, rgb(210 168 89 / 0.35)) border-box;
+    box-shadow: 0 40px 80px -40px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(239 230 210 / 0.05);
+  }
+  .panel-soft {
+    border: 1px solid rgb(45 69 58 / 0.9);
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgb(31 57 46 / 0.55), rgb(16 32 26 / 0.55));
+    box-shadow: inset 0 1px 0 rgb(239 230 210 / 0.04);
+  }
+
+  /* Избрано: позлатен градиент. */
+  .chip-active {
+    background: linear-gradient(180deg, var(--color-gold-bright), var(--color-gold) 55%, var(--color-gold-deep));
+    border-color: var(--color-gold-bright) !important;
+    color: var(--color-bottle-950) !important;
+    box-shadow: 0 10px 24px -12px rgb(210 168 89 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.4);
+  }
+
+  /* Декоративна линия с ромб: като орнамент на табела. */
+  .ornament {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    color: var(--color-gold);
+  }
+  .ornament::before,
+  .ornament::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, transparent, rgb(210 168 89 / 0.75));
+  }
+  .ornament::after {
+    background: linear-gradient(270deg, transparent, rgb(210 168 89 / 0.75));
+  }
+
+  /* Позлатена рамка на портретите. */
+  .mirror-frame {
+    border: 1.5px solid transparent;
+    background:
+      linear-gradient(180deg, #2c4a3d, #172b23 60%, #10201a) padding-box,
+      linear-gradient(160deg, var(--color-gold-bright), var(--color-gold-deep) 45%, #6b5126 70%, var(--color-gold)) border-box;
+    box-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.8), 0 0 40px -20px rgb(210 168 89 / 0.35);
   }
 
   /* Пунктирът в ценоразписа между името и цената. */

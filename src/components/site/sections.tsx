@@ -10,6 +10,7 @@ export function SectionHeading({ id, title, intro }: { id: string; title: string
       <h2 id={id} className="font-display text-4xl leading-tight text-cream md:text-5xl">
         {title}
       </h2>
+      <div aria-hidden className="mt-4 h-px w-24 bg-gradient-to-r from-gold to-transparent" />
       {intro && <p className="mt-3 max-w-xl text-cream-muted">{intro}</p>}
     </div>
   );
@@ -22,12 +23,12 @@ export async function ServicesMenu() {
     return <p className="text-cream-muted">Услугите скоро ще бъдат публикувани. Обадете ни се на {business.phone}.</p>;
   }
   return (
-    <ul className="divide-y divide-line border-y border-line">
+    <ul className="divide-y divide-line/70">
       {services.map((service) => (
         <li key={service.id}>
           <Link
             href={`/zapazi-chas?usluga=${service.id}`}
-            className="group -mx-3 block rounded-lg px-3 py-6 transition-colors hover:bg-bottle-900"
+            className="group -mx-4 block rounded-xl px-4 py-6 transition-colors hover:bg-gradient-to-r hover:from-gold/[0.07] hover:to-transparent"
           >
             <span className="flex items-baseline">
               <span className="font-display text-xl text-cream group-hover:text-gold-bright md:text-2xl">
@@ -119,7 +120,7 @@ export function MapPlaceholder() {
       href={business.mapUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="group relative block aspect-[4/3] overflow-hidden rounded-xl border border-line bg-bottle-800"
+      className="group relative block aspect-[4/3] overflow-hidden rounded-xl border border-gold/25 bg-gradient-to-br from-bottle-700 to-bottle-900 shadow-[0_30px_60px_-30px_rgb(0_0_0/0.8)]"
     >
       <div
         aria-hidden

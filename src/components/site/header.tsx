@@ -11,7 +11,7 @@ const nav = [
 
 export function SiteHeader({ showCta = true, ctaOnMobile = true }: { showCta?: boolean; ctaOnMobile?: boolean }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-line/70 bg-bottle-900/90 backdrop-blur supports-[backdrop-filter]:bg-bottle-900/75">
+    <header className="sticky top-0 z-30 border-b border-gold/15 bg-bottle-950/70 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-5">
         <Link href="/" className="flex items-center gap-2.5 text-gold" aria-label={`${business.name}, начало`}>
           <Mustache className="h-4 w-14" />

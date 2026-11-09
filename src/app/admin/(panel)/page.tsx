@@ -85,7 +85,7 @@ async function DayView({ searchParams }: Pick<PageProps<"/admin">, "searchParams
               <section
                 key={barber.id}
                 aria-label={barber.name}
-                className="w-[85vw] max-w-sm shrink-0 snap-start rounded-xl border border-line bg-bottle-900/50 p-4 lg:w-auto lg:max-w-none"
+                className="panel w-[85vw] max-w-sm shrink-0 snap-start p-4 lg:w-auto lg:max-w-none"
               >
                 <header className="mb-4 border-b border-line pb-3">
                   <h2 className="font-display text-xl text-cream">{barber.name}</h2>

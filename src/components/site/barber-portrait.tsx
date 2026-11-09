@@ -17,9 +17,9 @@ export function BarberPortrait({
 }) {
   return (
     <div
-      className={`mirror relative overflow-hidden border border-gold/35 bg-gradient-to-b from-bottle-600 via-bottle-700 to-bottle-800 p-1.5 ${className}`}
+      className={`mirror mirror-frame relative overflow-hidden p-1.5 ${className}`}
     >
-      <div className="mirror relative flex h-full w-full items-center justify-center overflow-hidden border border-gold/15 bg-[radial-gradient(ellipse_at_30%_20%,rgb(239_230_210/0.10),transparent_60%)]">
+      <div className="mirror relative flex h-full w-full items-center justify-center overflow-hidden border border-gold/15 bg-[radial-gradient(ellipse_at_30%_18%,rgb(240_211_140/0.16),transparent_55%),linear-gradient(180deg,rgb(31_57_46/0.6),rgb(11_24_19/0.9))]">
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photoUrl} alt={`Снимка на ${name}`} className="h-full w-full object-cover" />
