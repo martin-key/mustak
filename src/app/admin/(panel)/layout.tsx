@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { AdminNav } from "@/components/admin/admin-nav";
+import { AdminNav, AdminNavLinks } from "@/components/admin/admin-nav";
 import { Mustache } from "@/components/site/mustache";
 import { business } from "@/config/business";
 import { getCurrentAdmin } from "@/server/auth/session";
@@ -29,7 +29,9 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
               </Suspense>
             </div>
           </div>
-          <AdminNav />
+          <Suspense fallback={<AdminNavLinks pathname={null} />}>
+            <AdminNav />
+          </Suspense>
           <div className="ml-auto hidden md:block">
             <Suspense>
               <AdminUser />

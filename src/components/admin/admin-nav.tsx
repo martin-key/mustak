@@ -11,13 +11,17 @@ const items = [
   { href: "/admin/barbers", label: "Бръснари" },
 ];
 
+/** Активният раздел зависи от адреса, затова в layout-а е в Suspense с AdminNavLinks като fallback. */
 export function AdminNav() {
-  const pathname = usePathname();
+  return <AdminNavLinks pathname={usePathname()} />;
+}
+
+export function AdminNavLinks({ pathname }: { pathname: string | null }) {
   return (
     <nav aria-label="Админ навигация" className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
       <ul className="flex gap-1 whitespace-nowrap">
         {items.map((item) => {
-          const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+          const active = pathname !== null && (item.exact ? pathname === item.href : pathname.startsWith(item.href));
           return (
             <li key={item.href}>
               <Link
