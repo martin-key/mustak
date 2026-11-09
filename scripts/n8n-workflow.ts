@@ -121,11 +121,15 @@ const startArg = fromAI("start", "началото на часа точно ка
 const phoneArg = fromAI("customerPhone", "телефон на клиента, например 0881234567");
 
 /**
- * Idempotency-Key: едно и също записване (услуга + начален час + телефон) дава един и същ ключ.
+ * Idempotency-Key: едно и също записване (разговор + услуга + начален час + телефон) дава един и същ ключ.
  * Ако n8n повтори заявката или моделът извика инструмента два пъти, API-то връща вече създадения
  * час ("replayed": true), вместо да запише клиента втори път при друг свободен бръснар.
+ * sessionId на разговора (случаен UUID от балончето) е в ключа, за да не може посетител в друг разговор
+ * да състави същия ключ от чужд телефон и час и да получи чуждото записване.
+ * При ръчна проба на инструмента („Execute step“) Chat Trigger-ът не е пускан: тогава ключът е с „manual“.
  */
-const idempotencyKey = `={{ 'chat:' + ${serviceIdArg} + ':' + ${startArg} + ':' + ${phoneArg}.replace(/\\D/g, '') }}`;
+const sessionIdExpr = `($('${TRIGGER}').isExecuted ? $('${TRIGGER}').first().json.sessionId : 'manual')`;
+const idempotencyKey = `={{ 'chat:' + ${sessionIdExpr} + ':' + ${serviceIdArg} + ':' + ${startArg} + ':' + ${phoneArg}.replace(/\\D/g, '') }}`;
 
 const bookingBody =
   "={{ JSON.stringify({ " +

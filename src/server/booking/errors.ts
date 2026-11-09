@@ -7,7 +7,8 @@ export type BookingErrorCode =
   | "NOT_FOUND"
   | "ALREADY_CANCELLED"
   | "NOT_CANCELLABLE"
-  | "TOO_LATE_TO_CANCEL";
+  | "TOO_LATE_TO_CANCEL"
+  | "IDEMPOTENCY_KEY_REUSED";
 
 const messages: Record<BookingErrorCode, string> = {
   SERVICE_NOT_FOUND: "Услугата не съществува или вече не се предлага.",
@@ -19,6 +20,7 @@ const messages: Record<BookingErrorCode, string> = {
   ALREADY_CANCELLED: "Часът вече е отказан.",
   NOT_CANCELLABLE: "Този час не може да бъде отказан.",
   TOO_LATE_TO_CANCEL: "Твърде късно е за отказ онлайн. Моля, обадете се в салона.",
+  IDEMPOTENCY_KEY_REUSED: "Този Idempotency-Key вече е използван за друго записване. Часът не е записан.",
 };
 
 /** Очаквана грешка в бизнес логиката. Съобщението е на български и може да се покаже на потребителя. */

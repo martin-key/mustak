@@ -192,19 +192,41 @@ export interface CreatedBooking {
   replayed: boolean;
 }
 
-async function findByIdempotencyKey(db: DbLike, key: string): Promise<Appointment | undefined> {
-  const [row] = await db.select().from(appointments).where(eq(appointments.idempotencyKey, key));
-  return row;
+/**
+ * Повторената заявка описва ли същото записване. Без barberId („първият свободен“) бръснарят не се сравнява.
+ * Сравняваме и данните на клиента: записаният час съдържа името, имейла и бележката му.
+ */
+function isSameBooking(existing: Appointment, input: CreateBookingInput): boolean {
+  return (
+    existing.serviceId === input.serviceId &&
+    existing.startsAt.getTime() === input.start.getTime() &&
+    (!input.barberId || existing.barberId === input.barberId) &&
+    existing.customerName === input.customer.name &&
+    existing.customerPhone === input.customer.phone &&
+    existing.customerEmail === (input.customer.email ?? null) &&
+    existing.note === (input.note ?? null)
+  );
+}
+
+/**
+ * Вече записаният час за този Idempotency-Key или null, ако ключът е нов.
+ * Ако ключът е същият, а данните са други, отказваме: иначе който познае чужд ключ
+ * (напр. от услуга, час и телефон), би получил записания час с личните данни на друг клиент.
+ */
+async function replayByIdempotencyKey(db: DbLike, input: CreateBookingInput): Promise<CreatedBooking | null> {
+  if (!input.idempotencyKey) return null;
+  const [existing] = await db.select().from(appointments).where(eq(appointments.idempotencyKey, input.idempotencyKey));
+  if (!existing) return null;
+  if (!isSameBooking(existing, input)) throw new BookingError("IDEMPOTENCY_KEY_REUSED");
+  return { appointment: existing, cancelToken: null, replayed: true };
 }
 
 export async function createBooking(db: DbLike, input: CreateBookingInput, clock: Clock = {}): Promise<CreatedBooking> {
   const now = clock.now ?? new Date();
   const policy = clock.policy ?? defaultPolicy;
 
-  if (input.idempotencyKey) {
-    const existing = await findByIdempotencyKey(db, input.idempotencyKey);
-    if (existing) return { appointment: existing, cancelToken: null, replayed: true };
-  }
+  const replayed = await replayByIdempotencyKey(db, input);
+  if (replayed) return replayed;
 
   const service = await getActiveService(db, input.serviceId);
   const start = input.start;
@@ -283,13 +305,10 @@ export async function createBooking(db: DbLike, input: CreateBookingInput, clock
     } catch (error) {
       // Друг клиент е записал същото време в същия момент: базата е отказала. Пробваме следващия бръснар.
       if (isOverlapViolation(error)) continue;
-      if (
-        input.idempotencyKey &&
-        pgErrorCode(error) === PG_UNIQUE_VIOLATION &&
-        pgConstraint(error) === "appointments_idempotency_key_unique"
-      ) {
-        const existing = await findByIdempotencyKey(db, input.idempotencyKey);
-        if (existing) return { appointment: existing, cancelToken: null, replayed: true };
+      // Същият ключ, записан в същия момент от друга заявка.
+      if (pgErrorCode(error) === PG_UNIQUE_VIOLATION && pgConstraint(error) === "appointments_idempotency_key_unique") {
+        const replayedNow = await replayByIdempotencyKey(db, input);
+        if (replayedNow) return replayedNow;
       }
       throw error;
     }
