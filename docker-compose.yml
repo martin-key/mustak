@@ -1,5 +1,9 @@
 # Целият стек: приложение + PostgreSQL.
 #   cp .env.example .env   # попълнете паролите и ключа
+#
+# Готовият образ от GitHub Container Registry (само linux/amd64, напр. сървър):
+#   docker compose pull && docker compose up -d
+# Образ, направен локално от кода (всяка архитектура, вкл. Apple Silicon):
 #   docker compose up --build
 #
 # Базата е само във вътрешна Docker мрежа: няма публикуван порт и няма достъп до интернет.
@@ -25,8 +29,10 @@ services:
       - backend
 
   app:
+    # Образът, който публикува .github/workflows/docker-publish.yml. Таговете: latest, версия (1.4.0), sha-<commit>.
+    # С --build compose прави образа от кода и му дава същото име; `docker compose pull` връща този от GHCR.
+    image: ${APP_IMAGE:-ghcr.io/martin-key/mustak}:${APP_IMAGE_TAG:-latest}
     build: .
-    image: mustak-app:latest
     restart: unless-stopped
     depends_on:
       db:
