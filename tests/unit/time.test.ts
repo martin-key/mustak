@@ -4,6 +4,7 @@ import {
   daysBetween,
   endOfSofiaDay,
   formatDateLong,
+  formatDayMonth,
   isLocalDate,
   isoWeekday,
   sofiaToUtc,
@@ -59,5 +60,6 @@ describe("време в София", () => {
 
   it("показва датата на български", () => {
     expect(formatDateLong("2026-11-12")).toBe("четвъртък, 12 ноември");
+    expect(formatDayMonth("2026-12-01")).toBe("1 дек");
   });
 });

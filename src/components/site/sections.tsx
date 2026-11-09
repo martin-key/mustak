@@ -74,7 +74,7 @@ export async function Team() {
             <h3 className="font-display text-2xl text-cream sm:mt-6">{barber.name}</h3>
             <p className="mt-2 max-w-xs text-cream-muted">{barber.bio}</p>
             <Link
-              href={`/zapazi-chas?bradnar=${barber.id}`}
+              href={`/zapazi-chas?brasnar=${barber.id}`}
               className="mt-4 inline-block text-sm text-gold underline-offset-4 hover:text-gold-bright hover:underline"
             >
               Запази час при {barber.name.split(" ")[0]}

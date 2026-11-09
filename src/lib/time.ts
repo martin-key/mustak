@@ -183,7 +183,8 @@ const longDateYearFormatter = new Intl.DateTimeFormat(LOCALE, {
   month: "long",
   year: "numeric",
 });
-const dayMonthFormatter = new Intl.DateTimeFormat(LOCALE, { timeZone: "UTC", day: "numeric", month: "short" });
+// Intl за bg-BG дава "12" като кратко име на месеца, затова съкращенията са ръчни.
+const MONTHS_SHORT = ["яну", "фев", "мар", "апр", "май", "юни", "юли", "авг", "сеп", "окт", "ное", "дек"];
 const weekdayShortFormatter = new Intl.DateTimeFormat(LOCALE, { timeZone: "UTC", weekday: "short" });
 
 /** "четвъртък, 12 ноември" */
@@ -193,7 +194,8 @@ export function formatDateLong(date: LocalDate, options: { withYear?: boolean } 
 
 /** "12 ное" */
 export function formatDayMonth(date: LocalDate): string {
-  return dayMonthFormatter.format(noonUtc(date)).replace(/\.$/, "");
+  const [, m, d] = parseLocalDate(date);
+  return `${d} ${MONTHS_SHORT[m - 1]}`;
 }
 
 /** "чт" */
