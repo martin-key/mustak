@@ -123,6 +123,11 @@ describe("едновременно записване", () => {
       .map((r) => r.value.appointment.barberId);
     expect(booked).toHaveLength(3);
     expect(new Set(booked)).toEqual(new Set(barbers.map((b) => b.id)));
+    // Останалите две се отказват, защото всички бръснари са заети, а не с грешка от базата (напр. deadlock 40P01).
+    const failedCodes = results
+      .filter((r): r is PromiseRejectedResult => r.status === "rejected")
+      .map((r) => (r.reason instanceof BookingError ? r.reason.code : `pg:${pgErrorCode(r.reason)}`));
+    expect(failedCodes).toEqual(["SLOT_UNAVAILABLE", "SLOT_UNAVAILABLE"]);
   });
 });
 
